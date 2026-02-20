@@ -5,20 +5,26 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\Contracts\DecisionRepositoryInterface;
 use App\Repositories\DecisionRepository;
+use App\Repositories\Contracts\ReviewRepositoryInterface;
+use App\Repositories\ReviewRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
      */
-   public function register(): void
+ public function register(): void
 {
     $this->app->bind(
         DecisionRepositoryInterface::class,
         DecisionRepository::class
     );
-}
 
+    $this->app->bind(
+        ReviewRepositoryInterface::class,
+        ReviewRepository::class
+    );
+}
     /**
      * Bootstrap any application services.
      */
