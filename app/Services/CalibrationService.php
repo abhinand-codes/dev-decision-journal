@@ -10,40 +10,55 @@ class CalibrationService
         protected ReviewRepositoryInterface $reviewRepository
     ) {}
 
-    public function calculate(int $userId): array
-    {
-        $reviews = $this->reviewRepository->getReviewedByUser($userId);
+   public function calculate(int $userId): array
+{
+    $reviews = \App\Models\Review::with('decision')
+        ->whereHas('decision', fn ($q) => $q->where('user_id', $userId))
+        ->get();
 
-        if ($reviews->count() < 10) {
-            return [
-                'message' => 'Not enough reviewed decisions for reliable calibration.',
-                'total'   => $reviews->count(),
-            ];
-        }
+    $total = $reviews->count();
 
-        $data = [];
-
-        foreach ($reviews as $review) {
-            $confidence = $review->decision->confidence_score / 100;
-            $outcome    = $review->was_successful ? 1 : 0;
-
-            $data[] = [
-                'confidence' => $confidence,
-                'outcome'    => $outcome,
-                'error'      => pow($confidence - $outcome, 2),
-            ];
-        }
-
-        $overallAccuracy = collect($data)->avg('outcome');
-        $averageConfidence = collect($data)->avg('confidence');
-        $brierScore = collect($data)->avg('error');
-
+    if ($total < 5) {
         return [
-            'total_reviews'      => count($data),
-            'overall_accuracy'   => round($overallAccuracy * 100, 2),
-            'average_confidence' => round($averageConfidence * 100, 2),
-            'bias'               => round(($averageConfidence - $overallAccuracy) * 100, 2),
-            'brier_score'        => round($brierScore, 4),
+            'message' => 'Not enough reviewed decisions for reliable calibration.',
+            'total' => $total
         ];
     }
+
+    $correct = $reviews->where('was_successful', true)->count();
+    $overallAccuracy = round(($correct / $total) * 100, 2);
+
+    $buckets = [];
+
+    foreach ($reviews as $review) {
+        $confidence = $review->decision->confidence_score;
+        $bucket = floor($confidence / 10) * 10;
+        $buckets[$bucket][] = $review->was_successful ? 1 : 0;
+    }
+
+    $bucketData = [];
+
+    foreach ($buckets as $confidence => $results) {
+        $accuracy = array_sum($results) / count($results) * 100;
+
+        $bucketData[] = [
+            'confidence_bucket' => $confidence,
+            'actual_accuracy' => round($accuracy, 2),
+            'count' => count($results),
+            'bias' => round($accuracy - $confidence, 2),
+        ];
+    }
+
+    $averageConfidence = $reviews->avg(fn ($r) => $r->decision->confidence_score);
+    $bias = $overallAccuracy - $averageConfidence;
+
+    return [
+        'total_reviews' => $total,
+        'overall_accuracy' => $overallAccuracy,
+        'average_confidence' => round($averageConfidence, 2),
+        'overall_bias' => round($bias, 2),
+        'calibration_buckets' => $bucketData,
+        'interpretation' => $bias < 0 ? 'overconfident' : 'underconfident'
+    ];
+}
 }

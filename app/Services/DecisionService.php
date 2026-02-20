@@ -10,7 +10,8 @@ class DecisionService
 {
     public function __construct(
         protected DecisionRepositoryInterface $decisionRepository
-    ) {}
+    ) {
+    }
 
     public function create(array $data, int $userId): Decision
     {
@@ -30,7 +31,7 @@ class DecisionService
             if (!empty($data['assumptions'])) {
                 foreach ($data['assumptions'] as $assumption) {
                     $decision->assumptions()->create([
-                        'description' => $assumption['description']
+                        'description' => $assumption['description'],
                     ]);
                 }
             }
@@ -47,9 +48,33 @@ class DecisionService
     {
         return DB::transaction(function () use ($decision, $data) {
 
+            // Update scalar fields (title, context, etc.)
             $this->decisionRepository->update($decision, $data);
 
-            return $decision->refresh()->load(['options', 'assumptions', 'tags']);
+            // FIX: sync tags if provided
+            if (array_key_exists('tag_ids', $data)) {
+                $decision->tags()->sync($data['tag_ids'] ?? []);
+            }
+
+            // FIX: sync options if provided (delete and recreate)
+            if (array_key_exists('options', $data)) {
+                $decision->options()->delete();
+                foreach ($data['options'] ?? [] as $option) {
+                    $decision->options()->create($option);
+                }
+            }
+
+            // FIX: sync assumptions if provided (delete and recreate)
+            if (array_key_exists('assumptions', $data)) {
+                $decision->assumptions()->delete();
+                foreach ($data['assumptions'] ?? [] as $assumption) {
+                    $decision->assumptions()->create([
+                        'description' => $assumption['description'],
+                    ]);
+                }
+            }
+
+            return $decision->refresh()->load(['options', 'assumptions', 'tags', 'latestReview']);
         });
     }
 }

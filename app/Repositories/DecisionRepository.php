@@ -13,18 +13,19 @@ class DecisionRepository implements DecisionRepositoryInterface
     {
         $query = Decision::query()
             ->where('user_id', $userId)
-            ->with(['options', 'assumptions', 'tags', 'reviews']);
+            ->with(['options', 'assumptions', 'tags']); // reviews excluded from list — not needed
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['confidence_min'])) {
-            $query->where('confidence_score', '>=', $filters['confidence_min']);
+        // FIX: !empty(0) is falsy — use isset() so confidence_min=0 is not silently ignored
+        if (isset($filters['confidence_min']) && $filters['confidence_min'] !== '') {
+            $query->where('confidence_score', '>=', (int) $filters['confidence_min']);
         }
 
-        if (!empty($filters['confidence_max'])) {
-            $query->where('confidence_score', '<=', $filters['confidence_max']);
+        if (isset($filters['confidence_max']) && $filters['confidence_max'] !== '') {
+            $query->where('confidence_score', '<=', (int) $filters['confidence_max']);
         }
 
         if (!empty($filters['tag_ids'])) {
@@ -37,7 +38,7 @@ class DecisionRepository implements DecisionRepositoryInterface
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('context', 'like', "%{$search}%");
+                    ->orWhere('context', 'like', "%{$search}%");
             });
         }
 
@@ -46,7 +47,8 @@ class DecisionRepository implements DecisionRepositoryInterface
 
     public function findById(int $id): ?Decision
     {
-        return Decision::with(['options', 'assumptions', 'tags', 'reviews'])
+        // Show view: eager-load latestReview with its evaluations (not all reviews)
+        return Decision::with(['options', 'assumptions', 'tags', 'latestReview.assumptionEvaluations'])
             ->find($id);
     }
 

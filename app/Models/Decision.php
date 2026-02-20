@@ -45,14 +45,21 @@ class Decision extends Model
         return $this->hasMany(Assumption::class);
     }
 
+    /** All reviews — used for calibration queries */
     public function reviews()
     {
         return $this->hasMany(Review::class);
     }
 
+    /** Latest single review — used for detail/show view */
+    public function latestReview()
+    {
+        return $this->hasOne(Review::class)->latestOfMany();
+    }
+
     public function tags()
     {
         return $this->belongsToMany(Tag::class)
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 }
