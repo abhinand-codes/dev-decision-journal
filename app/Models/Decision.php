@@ -57,6 +57,12 @@ class Decision extends Model
         return $this->hasOne(Review::class)->latestOfMany();
     }
 
+    /** Alias for latestReview to match standard naming */
+    public function review()
+    {
+        return $this->latestReview();
+    }
+
     public function tags()
     {
         return $this->belongsToMany(Tag::class)

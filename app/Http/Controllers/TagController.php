@@ -8,10 +8,13 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TagController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return AnonymousResourceCollection
+     */
     public function index(): AnonymousResourceCollection
     {
-        // Tags are global reference data — no user scoping needed
-        // Paginated to protect against unbounded result sets
-        return TagResource::collection(Tag::orderBy('name')->paginate(50));
+        return TagResource::collection(Tag::all());
     }
 }

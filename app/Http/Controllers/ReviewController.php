@@ -17,7 +17,7 @@ class ReviewController extends Controller
     ) {
     }
 
-    public function store(StoreReviewRequest $request, Decision $decision): JsonResponse
+    public function store(StoreReviewRequest $request, Decision $decision): ReviewResource
     {
         $this->authorize('update', $decision);
 
@@ -26,9 +26,7 @@ class ReviewController extends Controller
             $request->validated()
         );
 
-        return (new ReviewResource($review))
-            ->response()
-            ->setStatusCode(201);
+        return ReviewResource::make($review);
     }
 
     public function calibration(): JsonResponse

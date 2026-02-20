@@ -38,25 +38,21 @@ class DecisionController extends Controller
         return DecisionResource::collection($decisions);
     }
 
-    public function store(StoreDecisionRequest $request): JsonResponse
+    public function store(StoreDecisionRequest $request): DecisionResource
     {
         $decision = $this->decisionService->create(
             $request->validated(),
             $request->user()->id
         );
 
-        return (new DecisionResource($decision))
-            ->response()
-            ->setStatusCode(201);
+        return DecisionResource::make($decision->load(['review', 'tags']));
     }
 
     public function show(Decision $decision): DecisionResource
     {
         $this->authorize('view', $decision);
 
-        return new DecisionResource(
-            $decision->load(['options', 'assumptions', 'tags', 'latestReview.assumptionEvaluations'])
-        );
+        return DecisionResource::make($decision->load(['review', 'tags', 'options', 'assumptions', 'latestReview.assumptionEvaluations']));
     }
 
     public function update(UpdateDecisionRequest $request, Decision $decision): DecisionResource
@@ -68,7 +64,7 @@ class DecisionController extends Controller
             $request->validated()
         );
 
-        return new DecisionResource($decision);
+        return DecisionResource::make($decision->load(['review', 'tags']));
     }
 
     public function destroy(Decision $decision): JsonResponse
@@ -77,6 +73,6 @@ class DecisionController extends Controller
 
         $this->decisionRepository->delete($decision);
 
-        return response()->json(['message' => 'Decision deleted successfully.']);
+        return response()->json(null, 204);
     }
 }

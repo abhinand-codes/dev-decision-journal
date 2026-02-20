@@ -13,7 +13,7 @@ class DecisionRepository implements DecisionRepositoryInterface
     {
         $query = Decision::query()
             ->where('user_id', $userId)
-            ->with(['options', 'assumptions', 'tags']); // reviews excluded from list — not needed
+            ->with(['review', 'tags']);
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
