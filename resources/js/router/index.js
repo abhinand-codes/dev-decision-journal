@@ -15,6 +15,12 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/decisions',
+        name: 'Decisions',
+        component: () => import('../views/Decisions.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/',
         redirect: '/dashboard'
     }
